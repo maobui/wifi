@@ -18,7 +18,7 @@ import android.net.NetworkInfo
 
 class WifiReceiver : BroadcastReceiver() {
     companion object {
-        val TAG = WifiReceiver.javaClass.simpleName
+        val TAG = WifiReceiver::class.java.simpleName
     }
     override fun onReceive(context: Context, intent: Intent) {
         // TODO("not implemented") //To change body of created functions use File | Settings | File Templates.

@@ -29,15 +29,18 @@ class MainActivity : AppCompatActivity(), ConnectivityReceiver.ConnectivityRecei
             super.onAvailable(network)
             // this ternary operation is not quite true, because non-metered doesn't yet mean, that it's wifi
             // nevertheless, for simplicity let's assume that's true
-            val  a = manager.activeNetworkInfo
-            val b = a.extraInfo
-            Log.wtf(TAG, "NetworkCallback connected to " + (if (manager!!.isActiveNetworkMetered) "LTE " else "WIFI ") +  b)
+            val activeNetwork = manager.activeNetworkInfo
+            if (activeNetwork.isConnected) {
+                Log.wtf(TAG, "NetworkCallback connected to " + (if (manager!!.isActiveNetworkMetered) "LTE " else "WIFI ") + activeNetwork.extraInfo + "  " +  activeNetwork.detailedState)
+            }
         }
 
         override fun onLost(network: Network) {
             super.onLost(network)
             Log.wtf(TAG, "NetworkCallback losing active connection")
         }
+
+
     }
 
 
@@ -52,9 +55,12 @@ class MainActivity : AppCompatActivity(), ConnectivityReceiver.ConnectivityRecei
         )
 
         manager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-//        manager.registerDefaultNetworkCallback(networkCallback)
-        val builder = NetworkRequest.Builder()
-        manager.registerNetworkCallback(builder.build(), networkCallback)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            manager.registerDefaultNetworkCallback(networkCallback)
+        } else {
+            val builder = NetworkRequest.Builder()
+            manager.registerNetworkCallback(builder.build(), networkCallback)
+        }
     }
 
     override fun onResume() {

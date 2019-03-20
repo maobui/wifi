@@ -1,7 +1,11 @@
 package com.me.bui.wifi
 
+import android.content.Context
 import android.content.IntentFilter
 import android.graphics.Color
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
 import android.os.Build
 import android.os.Bundle
 import android.support.annotation.RequiresApi
@@ -17,12 +21,40 @@ class MainActivity : AppCompatActivity(), ConnectivityReceiver.ConnectivityRecei
 
     private lateinit var mWifiConnectionReceiver: WifiConnectionReceiver
 
+    private lateinit var manager: ConnectivityManager
+    private val networkCallback = @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    object : ConnectivityManager.NetworkCallback() {
+
+        override fun onAvailable(network: Network) {
+            super.onAvailable(network)
+            // this ternary operation is not quite true, because non-metered doesn't yet mean, that it's wifi
+            // nevertheless, for simplicity let's assume that's true
+            val  a = manager.activeNetworkInfo
+            val b = a.extraInfo
+            Log.wtf(TAG, "NetworkCallback connected to " + (if (manager!!.isActiveNetworkMetered) "LTE " else "WIFI ") +  b)
+        }
+
+        override fun onLost(network: Network) {
+            super.onLost(network)
+            Log.wtf(TAG, "NetworkCallback losing active connection")
+        }
+    }
+
+
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mWifiConnectionReceiver = WifiConnectionReceiver()
-        registerReceiver(mWifiConnectionReceiver, IntentFilter(WifiConnectionReceiver.getIntentFilterForWifiConnectionReceiver()))
+        registerReceiver(
+            mWifiConnectionReceiver,
+            IntentFilter(WifiConnectionReceiver.getIntentFilterForWifiConnectionReceiver())
+        )
+
+        manager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+//        manager.registerDefaultNetworkCallback(networkCallback)
+        val builder = NetworkRequest.Builder()
+        manager.registerNetworkCallback(builder.build(), networkCallback)
     }
 
     override fun onResume() {
@@ -63,8 +95,10 @@ class MainActivity : AppCompatActivity(), ConnectivityReceiver.ConnectivityRecei
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
     override fun onDestroy() {
         unregisterReceiver(mWifiConnectionReceiver)
+        manager.unregisterNetworkCallback(networkCallback);
         super.onDestroy()
     }
 }
